@@ -1,3 +1,4 @@
+//smart-product-price-tracker\components\AuthModal.js
 "use client";
 
 import { createClient } from "@/utils/supabase/client";

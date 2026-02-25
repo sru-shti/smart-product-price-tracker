@@ -1,3 +1,4 @@
+//smart-product-price-tracker\utils\supabase\admin.js
 import { createClient } from "@supabase/supabase-js";
 
 export const supabaseAdmin = createClient(

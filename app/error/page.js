@@ -1,3 +1,4 @@
+//smart-product-price-tracker\app\error\page.js
 import Link from "next/link";
 
 export default function ErrorPage() {

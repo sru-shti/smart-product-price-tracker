@@ -1,3 +1,4 @@
+//smart-product-price-tracker\proxy.js
 import { updateSession } from "@/utils/supabase/middleware";
 
 export async function proxy(request) {

@@ -1,3 +1,4 @@
+//smart-product-price-tracker\components\AuthButton.js
 "use client";
 
 import { useState } from "react";

@@ -1,3 +1,4 @@
+//smart-product-price-tracker\utils\supabase\server.js
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 

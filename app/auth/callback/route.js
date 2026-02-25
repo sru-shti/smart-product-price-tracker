@@ -1,3 +1,4 @@
+//smart-product-price-tracker\app\auth\callback\route.js
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 

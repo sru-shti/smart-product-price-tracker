@@ -1,3 +1,4 @@
+//smart-product-price-tracker\components\PriceChart.js
 "use client";
 
 import { useEffect, useState } from "react";

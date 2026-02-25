@@ -21,6 +21,27 @@ export default function AddProductForm({ user }) {
       return;
     }
 
+    // 👇 1. URL VALIDATION LOGIC 👇
+    try {
+      const parsedUrl = new URL(url);
+      const hostname = parsedUrl.hostname.toLowerCase();
+      
+      // Check if it includes amazon, amzn (for short links), or flipkart
+      const isValidStore = 
+        hostname.includes('amazon') || 
+        hostname.includes('amzn') || 
+        hostname.includes('flipkart');
+
+      if (!isValidStore) {
+        toast.error("PriceScout currently only supports Amazon and Flipkart URLs.");
+        return;
+      }
+    } catch (error) {
+      toast.error("Please enter a valid URL.");
+      return;
+    }
+    // 👆 END VALIDATION LOGIC 👆
+
     setLoading(true);
 
     const formData = new FormData();
@@ -46,7 +67,8 @@ export default function AddProductForm({ user }) {
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="Paste product URL (Amazon, Walmart, etc.)"
+            // 👇 2. UPDATED PLACEHOLDER 👇
+            placeholder="Paste product URL (Amazon or Flipkart only)"
             className="h-12 text-base"
             required
             disabled={loading}

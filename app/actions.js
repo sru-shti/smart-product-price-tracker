@@ -1,3 +1,4 @@
+// smart-product-price-tracker/app/actions.js
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
@@ -11,6 +12,24 @@ export async function addProduct(formData) {
   if (!url) {
     return { error: "URL is required" };
   }
+
+  // 👇 BACKEND URL VALIDATION 👇
+  try {
+    const parsedUrl = new URL(url);
+    const hostname = parsedUrl.hostname.toLowerCase();
+    
+    const isValidStore = 
+      hostname.includes('amazon') || 
+      hostname.includes('amzn') || 
+      hostname.includes('flipkart');
+
+    if (!isValidStore) {
+      return { error: "PriceScout currently only supports Amazon and Flipkart URLs." };
+    }
+  } catch (error) {
+    return { error: "Please enter a valid URL format." };
+  }
+  // 👆 END VALIDATION 👆
 
   try {
     const supabase = await createClient();
@@ -54,6 +73,7 @@ export async function addProduct(formData) {
           current_price: newPrice,
           currency: currency,
           image_url: productData.productImageUrl,
+          in_stock: productData.inStock !== false, // Stock status mapping
           updated_at: new Date().toISOString(),
         },
         {
