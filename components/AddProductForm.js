@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { addProduct } from "@/app/actions";
+import { useRouter } from "next/navigation"; // 👇 1. Import useRouter
 import AuthModal from "./AuthModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ export default function AddProductForm({ user }) {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const router = useRouter(); // 👇 2. Initialize router
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,17 +23,10 @@ export default function AddProductForm({ user }) {
       return;
     }
 
-    // 👇 1. URL VALIDATION LOGIC 👇
     try {
       const parsedUrl = new URL(url);
       const hostname = parsedUrl.hostname.toLowerCase();
-      
-      // Check if it includes amazon, amzn (for short links), or flipkart
-      const isValidStore = 
-        hostname.includes('amazon') || 
-        hostname.includes('amzn') || 
-        hostname.includes('flipkart');
-
+      const isValidStore = hostname.includes('amazon') || hostname.includes('amzn') || hostname.includes('flipkart');
       if (!isValidStore) {
         toast.error("PriceScout currently only supports Amazon and Flipkart URLs.");
         return;
@@ -40,10 +35,8 @@ export default function AddProductForm({ user }) {
       toast.error("Please enter a valid URL.");
       return;
     }
-    // 👆 END VALIDATION LOGIC 👆
 
     setLoading(true);
-
     const formData = new FormData();
     formData.append("url", url);
 
@@ -51,13 +44,16 @@ export default function AddProductForm({ user }) {
 
     if (result.error) {
       toast.error(result.error);
+      setLoading(false);
     } else {
-      toast.success(result.message || "Product tracked successfully!");
+      toast.success("Product Analyzed!");
       setUrl("");
+      // 👇 3. Redirect to the new Product Detail page!
+      router.push(`/product/${result.product.id}`); 
     }
-
-    setLoading(false);
   };
+
+  // ... keep the return() statement exactly the same as before
 
   return (
     <>
@@ -69,7 +65,7 @@ export default function AddProductForm({ user }) {
             onChange={(e) => setUrl(e.target.value)}
             // 👇 2. UPDATED PLACEHOLDER 👇
             placeholder="Paste product URL (Amazon or Flipkart only)"
-            className="h-12 text-base"
+            className="h-12 text-base text-black"
             required
             disabled={loading}
           />

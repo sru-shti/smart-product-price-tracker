@@ -1,128 +1,74 @@
-//smart-product-price-tracker\app\page.js
+// smart-product-price-tracker/app/page.js
+
 import { createClient } from "@/utils/supabase/server";
-import { getProducts } from "./actions";
 import AddProductForm from "@/components/AddProductForm";
-import ProductCard from "@/components/ProductCard";
-import { TrendingDown, Shield, Bell, Rabbit } from "lucide-react";
-import AuthButton from "@/components/AuthButton";
-import Image from "next/image";
+import { LineChart, ShoppingCart, Zap } from "lucide-react";
 
 export default async function Home() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const products = user ? await getProducts() : [];
-
-  const FEATURES = [
-    {
-    icon: Rabbit,
-    title: "Lightning Fast",
-    description: "PriceScout extracts prices in seconds, handling JavaScript and dynamic content",
-  },
-    {
-      icon: Shield,
-      title: "Always Reliable",
-      description:
-        "Works across all major e-commerce sites with built-in anti-bot protection",
-    },
-    {
-      icon: Bell,
-      title: "Smart Alerts",
-      description: "Get notified instantly when prices drop below your target",
-    },
-  ];
+  const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <main className="min-h-screen bg-linear-to-br from-orange-50 via-white to-orange-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/deal-drop-logo.png" 
-              alt="PriceScout Logo"
-              width={600}
-              height={200}
-              className="h-10 w-auto"
-            />
-          </div>
-
-          <AuthButton user={user} />
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <section className="py-20 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-6 py-2 rounded-full text-sm font-medium mb-6">
-          </div>
-
-          <h2 className="text-5xl font-bold text-gray-900 mb-4 tracking-tight">
-            Never Miss a Price Drop
-          </h2>
-          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-            Track prices from any e-commerce site. Get instant alerts when
-            prices drop. Save money effortlessly.
+    <main className="min-h-screen bg-gray-50 flex flex-col">
+      {/* 1. HERO SECTION WITH SEARCH BAR */}
+      <section className="bg-[#1e1b4b] text-white py-24 px-4 flex flex-col justify-center border-b-[6px] border-orange-500">
+        <div className="max-w-4xl mx-auto text-center w-full">
+          <h1 className="text-5xl md:text-6xl font-extrabold mb-6 tracking-tight">
+            Shop Smarter, <span className="text-orange-500">Not Harder.</span>
+          </h1>
+          <p className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto">
+            Paste any Amazon or Flipkart product link below. We'll extract the true price, check bank offers, and show you the price history instantly.
           </p>
 
-          <AddProductForm user={user} />
-
-          {/* Features */}
-          {products.length === 0 && (
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-16">
-              {FEATURES.map(({ icon: Icon, title, description }) => (
-                <div
-                  key={title}
-                  className="bg-white p-6 rounded-xl border border-gray-200"
-                >
-                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
-                    <Icon className="w-6 h-6 text-orange-500" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
-                  <p className="text-sm text-gray-600">{description}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* The Search / Add Bar */}
+          <div className="bg-white p-2 md:p-3 rounded-2xl shadow-2xl max-w-3xl mx-auto">
+            <AddProductForm user={user} />
+          </div>
         </div>
       </section>
 
-      {/* Products Grid */}
-      {user && products.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 pb-20">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold text-gray-900">
-              Your Tracked Products
-            </h3>
-            <span className="text-sm text-gray-500">
-              {products.length} {products.length === 1 ? "product" : "products"}
-            </span>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 items-start">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Empty State */}
-      {user && products.length === 0 && (
-        <section className="max-w-2xl mx-auto px-4 pb-20 text-center">
-          <div className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-12">
-            <TrendingDown className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No products yet
-            </h3>
-            <p className="text-gray-600">
-              Add your first product above to start tracking prices!
+      {/* 2. FEATURES SECTION (Replaced the old Categories) */}
+      <section className="max-w-7xl mx-auto px-4 py-20 w-full bg-gray-50">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Why use PriceScout?</h2>
+          <p className="text-gray-600 mt-4 text-lg">Stop guessing. Make data-driven purchasing decisions.</p>
+        </div>
+        
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* Feature 1 */}
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
+            <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Zap className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold mb-3">AI Offer Extraction</h3>
+            <p className="text-gray-600 leading-relaxed">
+              Standard prices lie. We use AI to read the page and find hidden bank offers and coupons to give you the "True Price".
             </p>
           </div>
-        </section>
-      )}
+
+          {/* Feature 2 */}
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
+            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <LineChart className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold mb-3">Smart Price History</h3>
+            <p className="text-gray-600 leading-relaxed">
+              Never buy at the peak. View interactive charts and get our AI Verdict on whether it's a good time to buy or wait.
+            </p>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ShoppingCart className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold mb-3">Save & Compare</h3>
+            <p className="text-gray-600 leading-relaxed">
+              Save products to your personal cart. Compare Amazon and Flipkart prices side-by-side before you checkout.
+            </p>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

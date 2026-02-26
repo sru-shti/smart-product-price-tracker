@@ -1,10 +1,12 @@
 // smart-product-price-tracker/app/actions.js
 "use server";
 
+import { getLiveAmazonDeals } from "@/lib/firecrawl";
 import { createClient } from "@/utils/supabase/server";
 import { scrapeProduct } from "@/lib/firecrawl";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { searchCompetitorPrice } from "@/lib/firecrawl";
 
 export async function addProduct(formData) {
   const url = formData.get("url");
@@ -62,7 +64,7 @@ export async function addProduct(formData) {
 
     const isUpdate = !!existingProduct;
 
-    // Upsert product (insert or update based on user_id + url)
+  // Upsert product (insert or update based on user_id + url)
     const { data: product, error } = await supabase
       .from("products")
       .upsert(
@@ -73,12 +75,13 @@ export async function addProduct(formData) {
           current_price: newPrice,
           currency: currency,
           image_url: productData.productImageUrl,
-          in_stock: productData.inStock !== false, // Stock status mapping
+          in_stock: productData.inStock !== false, 
+          offers: productData.offers || "No special offers detected", // 👇 ADD THIS LINE
           updated_at: new Date().toISOString(),
         },
         {
-          onConflict: "user_id,url", // Unique constraint on user_id + url
-          ignoreDuplicates: false, // Always update if exists
+          onConflict: "user_id,url",
+          ignoreDuplicates: false,
         }
       )
       .select()
@@ -167,4 +170,79 @@ export async function signOut() {
   await supabase.auth.signOut();
   revalidatePath("/");
   redirect("/");
+}
+
+export async function getProductById(productId) {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", productId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Get product error:", error);
+    return null;
+  }
+}
+
+// Add this at the bottom of app/actions.js
+export async function saveToCart(productId) {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("products")
+      .update({ in_cart: true })
+      .eq("id", productId);
+
+    if (error) throw error;
+    
+    revalidatePath("/cart");
+    revalidatePath(`/product/${productId}`);
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+export async function getCompetitor(productName, store) {
+  return await searchCompetitorPrice(productName, store);
+}
+
+export async function refreshTrendingDeals(category = "electronics") {
+  try {
+    const supabase = await createClient();
+    
+    // 1. Fetch fresh data from Firecrawl (The slow part)
+    const freshDeals = await getLiveAmazonDeals(category);
+    
+    if (freshDeals && freshDeals.length > 0) {
+      // 2. Clear out the old stale deals for this specific category
+      await supabase.from("trending_deals").delete().eq("category", category);
+      
+      // 3. Prepare data for insertion
+      const dealsToSave = freshDeals.map(deal => ({
+        category,
+        name: deal.name,
+        price: deal.price,
+        original_price: deal.original_price,
+        discount: deal.discount,
+        image_url: deal.image_url,
+        url: deal.url,
+        updated_at: new Date().toISOString()
+      }));
+      
+      // 4. Save to database (The fast part for the next user)
+      const { error } = await supabase.from("trending_deals").insert(dealsToSave);
+      if (error) throw error;
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to refresh deals:", error);
+    return { error: error.message };
+  }
 }
