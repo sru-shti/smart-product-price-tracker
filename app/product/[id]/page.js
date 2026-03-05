@@ -54,8 +54,7 @@ export default function ProductPage({ params }) {
 
   const isAmazon = product.url.includes("amazon");
   const compStoreName = isAmazon ? "Flipkart" : "Amazon";
-
-  // 👇 UPGRADED AI BUY VERDICT LOGIC 👇
+// 👇 SMARTER AI BUY VERDICT LOGIC 👇
   let aiVerdict = { 
     title: "Analyzing Data...", 
     text: "Please wait while we check historical prices.",
@@ -66,27 +65,44 @@ export default function ProductPage({ params }) {
   };
 
   if (history.length > 0) {
-    const prices = history.map(h => parseFloat(h.price));
-    const current = parseFloat(product.current_price);
-    const lowestPrice = Math.min(...prices, current);
+    // 1. Safely clean the numbers (Removes any accidental commas like "12,999" -> 12999)
+    const cleanPrice = (val) => parseFloat(String(val).replace(/,/g, ''));
     
-    if (current <= lowestPrice) {
+    const pastPrices = history.map(h => cleanPrice(h.price));
+    const current = cleanPrice(product.current_price);
+    
+    // 2. Find the absolute lowest price in history
+    const lowestHistoricalPrice = Math.min(...pastPrices);
+    
+    if (history.length === 1) {
+      // If there is only 1 dot on the chart, we don't have enough history to make a judgment!
       aiVerdict = { 
-        title: "Buy Now! (Lowest Price)", 
-        text: "This is the lowest price we've tracked. It's a great time to buy!",
-        color: "bg-gradient-to-br from-green-50 to-emerald-100 border-green-500", 
-        textColor: "text-green-900",
-        iconBg: "bg-green-500 text-white",
+        title: "Tracking Started 🕒", 
+        text: "We just started tracking this item today. Check back later to see if the price drops!",
+        color: "bg-gradient-to-br from-blue-50 to-indigo-100 border-blue-500", 
+        textColor: "text-blue-900",
+        iconBg: "bg-blue-500 text-white",
         icon: ShieldCheck 
       };
-    } else {
+    } else if (current > lowestHistoricalPrice) {
+      // Current price is HIGHER than the past lowest price -> WAIT
       aiVerdict = { 
-        title: "Wait! (Price has been lower)", 
-        text: "Our AI detected that this item has been cheaper in the past. Don't overpay—wait for a price drop!",
+        title: "Wait! (Price has been lower) 📉", 
+        text: `Our AI detected this item was previously priced at ₹${lowestHistoricalPrice}. Don't overpay—wait for a drop!`,
         color: "bg-gradient-to-br from-red-50 to-rose-100 border-red-500", 
         textColor: "text-red-900",
         iconBg: "bg-red-500 text-white",
         icon: AlertCircle 
+      };
+    } else {
+      // Current price is EQUAL to or LOWER than the historical lowest -> BUY
+      aiVerdict = { 
+        title: "Buy Now! (Lowest Price Tracked) 🚀", 
+        text: "This is the lowest price we've tracked for this item. It's a great time to buy!",
+        color: "bg-gradient-to-br from-green-50 to-emerald-100 border-green-500", 
+        textColor: "text-green-900",
+        iconBg: "bg-green-500 text-white",
+        icon: ShieldCheck 
       };
     }
   }
