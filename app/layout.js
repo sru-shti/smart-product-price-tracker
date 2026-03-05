@@ -9,18 +9,19 @@ export const metadata = {
   description: "Track product prices across e-commerce sites and get alerts on price drops",
 };
 
-// 1. We keep ONLY the RootLayout as the default export
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="bg-gray-50/50 min-h-screen flex flex-col">
+        {/* The Navbar component handles the logo size. 
+            Ensure your Navbar.js uses className="h-24 w-auto" for the 'zoom' effect. */}
         <Navbar />
         
         <main className="flex-1">
           {children}
         </main>
 
-        {/* 2. We call the Footer here so it shows up on every page */}
+        {/* Minimalist Footer with no extra buttons as requested */}
         <Footer />
 
         <Toaster richColors />
@@ -29,30 +30,11 @@ export default function RootLayout({ children }) {
   );
 }
 
-// 3. We removed 'default' from here so it doesn't conflict
 function Footer() {
   return (
-    <footer className="bg-white border-t border-gray-100 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          
-          <div className="flex items-center gap-2">
-            <Image 
-              src="/logo.png" 
-              alt="PriceScoute Logo" 
-              width={120} 
-              height={30} 
-              className="h-6 w-auto grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition"
-            />
-          </div>
-
-          <nav className="flex gap-6 text-xs font-medium text-gray-500">
-            <Link href="/about" className="hover:text-orange-500 transition">About</Link>
-            <Link href="/deals" className="hover:text-orange-500 transition">Deals</Link>
-            <Link href="/contact" className="hover:text-orange-500 transition">Contact</Link>
-            <Link href="/privacy" className="hover:text-orange-500 transition">Privacy</Link>
-          </nav>
-
+    <footer className="bg-white border-t border-gray-50 mt-auto">
+      <div className="max-w-7xl mx-auto px-4 py-6"> 
+        <div className="text-center">
           <p className="text-[10px] text-gray-400 uppercase tracking-widest">
             © 2026 PriceScoute. All Rights Reserved.
           </p>

@@ -1,13 +1,13 @@
-// smart-product-price-tracker/app/actions.js
 "use server";
 
-import { getLiveAmazonDeals } from "@/lib/firecrawl";
+import { getLiveAmazonDeals, scrapeProduct, searchCompetitorPrice } from "@/lib/firecrawl";
 import { createClient } from "@/utils/supabase/server";
-import { scrapeProduct } from "@/lib/firecrawl";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { searchCompetitorPrice } from "@/lib/firecrawl";
 
+// ==========================================
+// 1. ADD PRODUCT (Includes your URL Validation & Offers)
+// ==========================================
 export async function addProduct(formData) {
   const url = formData.get("url");
 
@@ -76,7 +76,7 @@ export async function addProduct(formData) {
           currency: currency,
           image_url: productData.productImageUrl,
           in_stock: productData.inStock !== false, 
-          offers: productData.offers || "No special offers detected", // 👇 ADD THIS LINE
+          offers: productData.offers || "No special offers detected", // 👇 YOUR ADDED LINE
           updated_at: new Date().toISOString(),
         },
         {
@@ -115,6 +115,9 @@ export async function addProduct(formData) {
   }
 }
 
+// ==========================================
+// 2. DELETE PRODUCT
+// ==========================================
 export async function deleteProduct(productId) {
   try {
     const supabase = await createClient();
@@ -132,6 +135,9 @@ export async function deleteProduct(productId) {
   }
 }
 
+// ==========================================
+// 3. GET PRODUCTS
+// ==========================================
 export async function getProducts() {
   try {
     const supabase = await createClient();
@@ -148,6 +154,9 @@ export async function getProducts() {
   }
 }
 
+// ==========================================
+// 4. GET PRICE HISTORY
+// ==========================================
 export async function getPriceHistory(productId) {
   try {
     const supabase = await createClient();
@@ -165,6 +174,9 @@ export async function getPriceHistory(productId) {
   }
 }
 
+// ==========================================
+// 5. SIGN OUT
+// ==========================================
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
@@ -172,6 +184,9 @@ export async function signOut() {
   redirect("/");
 }
 
+// ==========================================
+// 6. GET PRODUCT BY ID
+// ==========================================
 export async function getProductById(productId) {
   try {
     const supabase = await createClient();
@@ -189,7 +204,9 @@ export async function getProductById(productId) {
   }
 }
 
-// Add this at the bottom of app/actions.js
+// ==========================================
+// 7. SAVE TO CART
+// ==========================================
 export async function saveToCart(productId) {
   try {
     const supabase = await createClient();
@@ -208,41 +225,135 @@ export async function saveToCart(productId) {
   }
 }
 
+// ==========================================
+// 8. GET COMPETITOR PRICE (SMART NAME EXTRACTOR + GUARDRAILS)
+// ==========================================
 export async function getCompetitor(productName, store) {
-  return await searchCompetitorPrice(productName, store);
-}
+  try {
+    // 1. Remove bracketed specs like (WA80BG4441BGTL, Light Gray)
+    let baseName = productName.replace(/\([^)]*\)/g, '').replace(/\[[^\]]*\]/g, '').trim();
 
-export async function refreshTrendingDeals(category = "electronics") {
+    // 2. Keep only the first 4 words (Usually Brand + Series/Model)
+    let cleanName = baseName.split(' ').slice(0, 4).join(' ').replace(/,/g, '');
+
+    // 3. THE SMART CATEGORY INJECTOR 🧠
+    // If the original title has these words, force them into the search term!
+    const importantCategories = [
+      "washing machine", "phone", "smartphone", "laptop", "tv", "television", 
+      "refrigerator", "fridge", "microwave", "watch", "earbuds", "headphones", 
+      "tablet", "monitor", "camera"
+    ];
+
+    const origNameLower = productName.toLowerCase();
+    
+    for (const cat of importantCategories) {
+      if (origNameLower.includes(cat) && !cleanName.toLowerCase().includes(cat)) {
+        cleanName += ` ${cat}`; // Append the category back on!
+        break; // Stop after finding the first matching category
+      }
+    }
+
+    console.log(`Original Name: ${productName}`);
+    console.log(`Smart Cleaned Search: ${cleanName}`);
+
+    // 4. Fetch the competitor result
+    const competitorResult = await searchCompetitorPrice(cleanName, store);
+
+    // If Firecrawl timed out or found nothing, safely return null
+    if (!competitorResult || !competitorResult.url) {
+      return null; 
+    }
+
+    // 5. THE URL GUARDRAIL 🛡️ (Prevents showing a Phone when searching for a TV)
+    const compUrlLower = competitorResult.url.toLowerCase(); 
+
+    for (const cat of importantCategories) {
+      if (origNameLower.includes(cat)) {
+        const urlCategory1 = cat.replace(' ', '-'); 
+        const urlCategory2 = cat.replace(' ', ''); 
+        
+        // If it's supposed to be a washing machine, but the URL doesn't say washing machine...
+        if (!compUrlLower.includes(urlCategory1) && !compUrlLower.includes(urlCategory2)) {
+          console.log(`🚨 Mismatch Prevented! Expected '${cat}', but got wrong item on ${store}.`);
+          return null; // Safely trigger "Currently unavailable" UI
+        }
+      }
+    }
+
+    return competitorResult;
+
+  } catch (error) {
+    // If Firecrawl throws a network timeout, catch it so the app doesn't crash!
+    console.error("Competitor Search Failed gracefully:", error.message);
+    return null;
+  }
+}
+// ==========================================
+// 9. REFRESH TRENDING DEALS (WITH QUEUE RATE LIMITER)
+// ==========================================
+export async function refreshTrendingDeals(categoryInput = null) {
   try {
     const supabase = await createClient();
     
-    // 1. Fetch fresh data from Firecrawl (The slow part)
-    const freshDeals = await getLiveAmazonDeals(category);
-    
-    if (freshDeals && freshDeals.length > 0) {
-      // 2. Clear out the old stale deals for this specific category
-      await supabase.from("trending_deals").delete().eq("category", category);
+    // If a specific category is passed from the UI, scrape just that one.
+    // Otherwise, loop through all of them safely.
+    const categoriesToScrape = categoryInput 
+      ? [categoryInput] 
+      : ['electronics', 'kitchen', 'apparel', 'beauty', 'books'];
+
+    const summary = [];
+
+    // 🚦 Loop through them one by one to prevent Amazon 408 Timeouts
+    for (const category of categoriesToScrape) {
+      console.log(`⏳ Scraping category: ${category}...`);
       
-      // 3. Prepare data for insertion
-      const dealsToSave = freshDeals.map(deal => ({
-        category,
-        name: deal.name,
-        price: deal.price,
-        original_price: deal.original_price,
-        discount: deal.discount,
-        image_url: deal.image_url,
-        url: deal.url,
-        updated_at: new Date().toISOString()
-      }));
-      
-      // 4. Save to database (The fast part for the next user)
-      const { error } = await supabase.from("trending_deals").insert(dealsToSave);
-      if (error) throw error;
+      try {
+        const freshDeals = await getLiveAmazonDeals(category);
+        
+        if (freshDeals && freshDeals.length > 0) {
+          // Sort by highest discount first
+          const sortedDeals = freshDeals.sort((a, b) => {
+            const getDiscount = (d) => parseInt(d?.match(/\d+/)?.[0] || 0);
+            return getDiscount(b.discount) - getDiscount(a.discount);
+          });
+
+          // Delete old stale deals for this category
+          await supabase.from("trending_deals").delete().eq("category", category);
+          
+          // Prepare new data
+          const dealsToSave = sortedDeals.map(deal => ({
+            category,
+            name: deal.name,
+            price: deal.price,
+            original_price: deal.original_price || "",
+            discount: deal.discount || "",
+            image_url: deal.image_url,
+            url: deal.url,
+            updated_at: new Date().toISOString()
+          }));
+          
+          // Insert new data
+          const { error } = await supabase.from("trending_deals").insert(dealsToSave);
+          if (error) throw error;
+          
+          console.log(`✅ Successfully updated: ${category}`);
+          summary.push({ category, status: "success" });
+        }
+      } catch (scrapeErr) {
+        console.error(`🚨 Failed to scrape ${category}:`, scrapeErr.message);
+        summary.push({ category, status: "failed", error: scrapeErr.message });
+      }
+
+      // 🛑 THE MAGIC FIX: If we are scraping multiple categories, wait 3 seconds between them
+      if (categoriesToScrape.length > 1) {
+        console.log(`⏱️ Waiting 3 seconds before next category to prevent rate-limits...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
     }
-    
-    return { success: true };
+
+    return { success: true, summary };
   } catch (error) {
-    console.error("Failed to refresh deals:", error);
+    console.error("Global Refresh failed:", error);
     return { error: error.message };
   }
 }

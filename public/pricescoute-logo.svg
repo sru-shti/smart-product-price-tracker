@@ -1,0 +1,16 @@
+<svg width="400" height="150" viewBox="0 0 400 150" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0143a3;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1c74d8;stop-opacity:1" />
+    </linearGradient>
+    <style type="text/css">
+      .priceText { font-family: 'Montserrat', sans-serif; font-size: 80px; font-weight: 800; fill: url(#blueGradient); letter-spacing: -2px; }
+      .scouteText { font-family: 'Montserrat', sans-serif; font-size: 55px; font-weight: 600; fill: #e86c00; }
+    </style>
+  </defs>
+
+  <text x="50%" y="85" text-anchor="middle" class="priceText">PRICE</text>
+  <text x="50%" y="135" text-anchor="middle" class="scouteText">Scoute</text>
+  <line x1="100" y1="145" x2="300" y2="145" stroke="#0143a3" stroke-width="4" />
+</svg>

@@ -12,17 +12,27 @@ export default async function Navbar() {
     <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row justify-between items-center gap-4">
   
-  {/* UPDATED LOGO SECTION */}
-  <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition p-2 bg-white rounded-md">
+  {/* 👇 1. UPDATED LOGO SECTION (Merged with your styling) 👇 */}
+  <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition rounded-md">
     <Image 
-      src="/logo.png"          
+      // 👇 Assume you saved the SVG code from the previous turn as 'pricescoute-logo.svg' in /public
+      src="/pricescoute-logo.svg"          
       alt="PriceScoute Logo" 
-      width={300}              // 👇 1. Increase the width property to allow for more rendering space
-      height={80}               // 👇 2. Increase the height property accordingly
-      className="h-16 w-auto"  // 👇 3. This is the main fix! Remove h-10 and use h-16 or h-20 for a much bigger icon.
+      
+      // 👇 2. Define the baseline dimensions from the SVG viewbox (400x150) for aspect ratio.
+      // This tells Next.js how much space to reserve, preventing layout shift.
+      width={400}               
+      height={150}              
+
+      // 👇 3. This is the main scaling fix!
+      // h-20 (5rem/80px) makes the logo physically 'BIG', much larger than h-10 or h-16.
+      // w-auto maintains the perfect aspect ratio.
+      className="h-20 w-auto"  
+      
       priority                
     />
   </Link>
+  {/* 👆 END LOGO SECTION 👆 */}
 
         <nav className="flex items-center gap-6 text-sm font-medium text-gray-600">
           <Link href="/about" className="hover:text-orange-500 transition">About</Link>

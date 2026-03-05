@@ -15,7 +15,7 @@ export default function AddProductForm({ user }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const router = useRouter(); // 👇 2. Initialize router
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!user) {
@@ -45,11 +45,16 @@ export default function AddProductForm({ user }) {
     if (result.error) {
       toast.error(result.error);
       setLoading(false);
-    } else {
+    } else if (result.success && result.product?.id) { // ⭐ Added safety check here
       toast.success("Product Analyzed!");
       setUrl("");
-      // 👇 3. Redirect to the new Product Detail page!
+      setLoading(false); // Ensure loading is stopped before redirect
+      // 👇 Redirecting safely now
       router.push(`/product/${result.product.id}`); 
+    } else {
+      // Fallback if success is true but product data is missing
+      toast.error("Product analyzed, but could not redirect. Please check your dashboard.");
+      setLoading(false);
     }
   };
 
