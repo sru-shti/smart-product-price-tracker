@@ -30,7 +30,8 @@ export default function ProductPage({ params }) {
 
       // Trigger the background competitor search!
       if (p) {
-        const isAmazon = p.url.includes("amazon");
+        // Now checks for uppercase and shortened amzn.to links!
+        const isAmazon = p.url.toLowerCase().includes("amazon") || p.url.toLowerCase().includes("amzn"); 
         const storeToSearch = isAmazon ? "flipkart" : "amazon";
         const compData = await getCompetitor(p.name, storeToSearch);
         setCompetitorData(compData);
@@ -52,7 +53,7 @@ export default function ProductPage({ params }) {
     setSaving(false);
   };
 
-  const isAmazon = product.url.includes("amazon");
+  const isAmazon = product.url.toLowerCase().includes("amazon") || product.url.toLowerCase().includes("amzn");
   const compStoreName = isAmazon ? "Flipkart" : "Amazon";
 // 👇 SMARTER AI BUY VERDICT LOGIC 👇
   let aiVerdict = { 

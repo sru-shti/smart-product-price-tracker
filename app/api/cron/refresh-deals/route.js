@@ -1,3 +1,4 @@
+//C:\Users\chobh\Desktop\DealDrop\smart-product-price-tracker\app\api\cron\refresh-deals\route.js
 import { refreshTrendingDeals } from "@/app/actions";
 import { NextResponse } from "next/server";
 
